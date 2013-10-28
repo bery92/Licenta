@@ -74,13 +74,36 @@ Mat getSkin(Mat frame)
 	//vector<Mat> chanels;
 	Mat skin,fg;
 	cvtColor(frame,fg,CV_RGB2YCrCb);
-	//split(fg,chanels);
-	//showImg("Y",chanels[0]);
-	//showImg("Cr",chanels[1]);
-	//showImg("Cb",chanels[2]);
-	inRange(fg,Scalar(0,85,140),Scalar(255,120,170),skin);
+
+
+//	inRange(fg,Scalar(0,85,140),Scalar(255,120,170),skin);
+		inRange(fg,Scalar(35,35,35),Scalar(255,255,255),skin);
+
 	return skin;
 }
+
+Mat getSkin2(Mat frame)
+{
+	vector<Mat> chanels;
+	Mat skin,fg;
+	cvtColor(frame,fg,CV_RGB2YCrCb);
+	split(fg,chanels);
+	showImg("Y",chanels[0]);
+	showImg("Cr",chanels[1]);
+	showImg("Cb",chanels[2]);
+for (int i = 0; i < fg.rows; i++)
+{
+	for (int j = 0; j < fg.cols; j++)
+	{
+		if ((chanels[1].at<uchar>(i,j) < 177) && (chanels[1].at<uchar>(i,j) > 137) && (chanels[2].at<uchar>(i,j) < 127) && (chanels[2].at<uchar>(i,j) > 77) && (chanels[2].at<uchar>(i,j) + 0.6 * chanels[1].at<uchar>(i,j) > 190) && (chanels[2].at<uchar>(i,j) + 0.6 * chanels[1].at<uchar>(i,j) < 215))
+		 chanels[0].at<uchar>(i,j)=255;
+		else
+		 chanels[0].at<uchar>(i,j)=0;
+	}
+}
+	return chanels[0];
+}
+
 void test(Mat* img)
 {
  for(int i = 0; i < (*img).rows; i++)
@@ -94,15 +117,13 @@ void test(Mat* img)
 
 BackgroundSubtractorMOG2 mog(100,50,false);
 
-
-
-int main()
+int hand()
 {
 	
 	VideoCapture cap(0);
 	Mat frame,fg,skin,img;
 	vector<Mat> chanels;
-
+	
 	cv::Mat binary;
 	std::vector < std::vector<cv::Point2i > > blobs;
 
@@ -116,15 +137,12 @@ int main()
 	Mat element = getStructuringElement( MORPH_RECT,Size( 2*1 + 1, 2*1+1 ),	Point( 1, 1 ) );
 
 
-	 
 	while(cap.read(frame))
 	{
 		vector<vector<Point> > contours;
 		vector<Vec4i> hierarchy;
 
-	 //addWeighted(frame,1.5,img,-0.5,0,frame);
-	 //mog.operator()(frame,fg,0.001);
-	 // //
+	
 	img = frame.clone();
 	 skin = getSkin(frame);
 	GaussianBlur(skin,skin,Size(0,0),5);
@@ -197,6 +215,55 @@ int main()
 	 if(waitKey(1) == 27)
 		return 0;
 	}
+}
+
+int main()
+{
+	Mat img,reduced;
+	uchar* p;
+	vector<vector<Point> > contours;
+	vector<Vec4i> hierarchy;
+	Mat lookUpTable(1, 256, CV_8U);
+	p = lookUpTable.data;
+	for( int i = 0; i < 256; ++i)
+		p[i] = 128 * (i/128);
+	
+	img = imread("C:\\Users\\walkout\\Pictures\\Penguins.jpg",1);
+
+		LUT(img, lookUpTable, img);
+	showImg("We",img);
+	//showImg("Reduced",reduced);
+	cvtColor(img,img,CV_BGR2GRAY);
+	 adaptiveThreshold(img,img,70,ADAPTIVE_THRESH_GAUSSIAN_C ,THRESH_BINARY,9, 7);
+	//Canny(img,img,80,80);
+	showImg("Canny",img);
+	
+	findContours( img, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+
+
+	Mat drawing = Mat::zeros( img.size(), CV_8UC3 );
+
+	for( int i = 0; i< contours.size(); i++ )
+	{
+
+		Scalar color = Scalar( 126, 100,89 );
+		if( contours[i].size()>100 
+			&& contours[i][0].x < contours[i][contours[i].size()-1].x +5 
+			&& contours[i][0].x > contours[i][contours[i].size()-1].x -5 
+			&& contours[i][0].y < contours[i][contours[i].size()-1].y +5 
+			&& contours[i][0].y > contours[i][contours[i].size()-1].y -5)
+		{
+		 drawContours( drawing, contours, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
+		 printf("(%d,%d) (%d,%d)\n",contours[i][0].x,contours[i][0].y,contours[i][contours[i].size()-1].x,contours[i][contours[i].size()-1].y);
+		 waitKey(10);
+		 showImg("Cont",drawing);
+		}
+	}
+
+	showImg("Cont",drawing);
+
+	//hand();
+	//showImg("A",img);
 	printf("ok\n");
 	waitKey(0);
 
